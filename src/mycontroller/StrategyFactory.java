@@ -25,8 +25,8 @@ public class StrategyFactory {
 		return new WallFollowingStrategy();
 	}
 	
-	public DjikstraStrategy getDjikstraStrategy() {
-		return new DjikstraStrategy();
+	public DijkstraStrategy getDijkstraStrategy() {
+		return new DijkstraStrategy();
 	}
 
 }

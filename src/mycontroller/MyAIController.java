@@ -10,7 +10,7 @@ import world.WorldSpatial;
 
 public class MyAIController extends CarController{
 
-	HashMap<Coordinate,MapTile> map;
+	HashMap<Coordinate, MapTile> map;
 	HashMap<Coordinate, Boolean> visitedMap;
 	
 	Strategy currentStrategy;
@@ -34,12 +34,18 @@ public class MyAIController extends CarController{
 	
 	public MyAIController(Car car) {
 		super(car);
-		currentStrategy = StrategyFactory.getInstance().getWallFollowingStrategy();
+		// currentStrategy = StrategyFactory.getInstance().getWallFollowingStrategy();
+		currentStrategy = StrategyFactory.getInstance().getDijkstraStrategy();
 	}
 
 	@Override
 	public void update(float delta) {
-		switch (this.currentStrategy.getNextMove(this.map, getX(), getY(), isFollowingWall, previousState)) {
+		// going to assume that we know the coordinate we're getting to:
+		Coordinate firstKey = new Coordinate(5, 8);
+		currentStrategy.mapDetails(map, firstKey);
+		// MoveDecision decisionMade = currentStrategy.getNextMove(this.map, getX(), getY(), isFollowingWall, previousState);
+		MoveDecision decisionMade = currentStrategy.getNextMove(this.map, isFollowingWall, previousState);
+		switch (decisionMade.nextMove) {
 			case 1:
 				applyForwardAcceleration();
 				break;

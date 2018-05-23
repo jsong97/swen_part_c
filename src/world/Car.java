@@ -150,7 +150,7 @@ public class Car extends Sprite{
 	}
 
 	private void lose(String message) {
-		System.out.println(message);
+		// System.out.println(message);
 		Simulation.endGame(false); // You lose!
 	}
 	

@@ -1,20 +1,23 @@
 package mycontroller;
 
+import tiles.MapTile;
+
 public class Edge  {
-    private final String id;
+    private final MapTile.Type tileType;
     private final Vertex source;
     private final Vertex destination;
     private final int weight;
+    
 
-    public Edge(String id, Vertex source, Vertex destination, int weight) {
-        this.id = id;
+    public Edge(MapTile.Type tileType, Vertex source, Vertex destination, int weight) {
+        this.tileType = tileType;
         this.source = source;
         this.destination = destination;
         this.weight = weight;
     }
 
-    public String getId() {
-        return id;
+    public MapTile.Type getTileType() {
+        return tileType;
     }
     public Vertex getDestination() {
         return destination;

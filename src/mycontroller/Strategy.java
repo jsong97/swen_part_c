@@ -12,6 +12,10 @@ public abstract class Strategy {
 		
 	}
 	
-	abstract MoveDecision getNextMove(HashMap<Coordinate,MapTile> map, float carX, float carY, boolean isFollowingWall, WorldSpatial.Direction previousState);
+	public void mapDetails(HashMap<Coordinate,MapTile> currentView, Coordinate finalDestination) {
+	}
 	
+//	abstract MoveDecision getNextMove(HashMap<Coordinate,MapTile> map, float carX, float carY, boolean isFollowingWall, WorldSpatial.Direction previousState);
+	
+	abstract MoveDecision getNextMove(HashMap<Coordinate,MapTile> map, boolean isFollowingWall, WorldSpatial.Direction previousState);
 }
