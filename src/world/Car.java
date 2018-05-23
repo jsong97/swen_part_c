@@ -40,7 +40,7 @@ public class Car extends Sprite{
 	private boolean handBrake = false;
 	private boolean wasReversing = false;
 
-	private static final float MAX_SPEED = 5f;
+	private static final float MAX_SPEED = 50f;
 	private static final float MAX_REVERSE_SPEED = 2.5f;
 	private static final float ROTATING_FACTOR = 150f;
 	private static final float STEERING_ADJUST_FACTOR = 0.05f;
@@ -62,7 +62,7 @@ public class Car extends Sprite{
 	private static int CAR_HEIGHT;
 
 	private float health;
-	private static final float MAX_HEALTH = 100;
+	private static final float MAX_HEALTH = 1000;
 	
 	private int key = 1; // If no keys elsewhere, we have the exit key
 

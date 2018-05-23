@@ -82,7 +82,7 @@ public class AIController extends CarController {
 			else if(checkFollowingWall(getOrientation(),currentView)){
 				// Maintain some velocity
 				if(getSpeed() < CAR_SPEED){
-					super.applyForwardAcceleration();
+					applyForwardAcceleration();
 				}
 				// If there is wall ahead, turn right!
 				if(checkWallAhead(getOrientation(),currentView)){
