@@ -1,6 +1,7 @@
 package mycontroller;
 
 import java.util.ArrayList;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -19,6 +20,7 @@ import utilities.Coordinate;
 import world.World;
 import world.WorldSpatial;
 import world.WorldSpatial.Direction;
+import world.Car;
 
 
 // the Dijkstra class needs to:
@@ -32,41 +34,51 @@ public class DijkstraStrategy extends Strategy {
 	// this is the full map
 	private HashMap<Coordinate, MapTile> worldMap;
 	
-    // this is the current view
+    // this is the current view and current location
     private HashMap<Coordinate, MapTile> currentView;
+    private Coordinate currentLoc;
     
     // this is the destination
     private Coordinate finalDestination;
     
     // these are needed to build a map of nodes
-    private List<Vertex> nodes;
-    private List<Edge> edges;
+    private ArrayList<Vertex> nodes;
+    private ArrayList<Edge> edges;
     private Set<Vertex> settledNodes;
     private Set<Vertex> unSettledNodes;
     private Map<Vertex, Vertex> predecessors;
     private Map<Vertex, Integer> distance;
     
+    // this is the graph we use to perform dijkstra
     private Graph graph;
+    
+    // this is the path we take to the destination
+    private LinkedList<Vertex> path;
+    
+    private Car car;
+    private WorldSpatial.Direction previousState;
 
-    public DijkstraStrategy() {
+    public DijkstraStrategy(Car car, Coordinate currentLoc, 
+    		HashMap<Coordinate,MapTile> currentView, Coordinate finalDestination,
+    		WorldSpatial.Direction previousState) {
     	// get the overall map from the game
     	this.worldMap = World.getMap();
+    	this.car = car;
+    	this.previousState = previousState;
+    	this.currentLoc = currentLoc;
     	
     	// add the destination and the current view
     	// this is all in mapDetails()
-    	
-        // use the buildRoute() function to get the route and graph
-        // use getNextMove() to return the next step   
-    }
-    
-    public void mapDetails(HashMap<Coordinate,MapTile> currentView, Coordinate finalDestination) {
     	// add the destination
     	this.finalDestination = finalDestination;
     	
     	// get the current view from MyAIController
     	this.currentView = currentView;
-    	buildRoute();
+    	
+        // use the buildRoute() function to get the route and graph
+        // use getNextMove() to return the next step   
     }
+  
     
     // this will build a graph using vertexes and nodes from scratch
     public void buildRoute() {
@@ -75,7 +87,8 @@ public class DijkstraStrategy extends Strategy {
         this.edges = new ArrayList<Edge>();
         
 	    for (int i = 0; i < 11; i++) {
-	        Vertex location = new Vertex("Node_" + i, "Node_" + i);
+	    	Coordinate coordinates = new Coordinate(i, i);
+	        Vertex location = new Vertex("Node_" + i, "Node_" + i, coordinates);
 	        nodes.add(location);
 	    }
 	    
@@ -84,20 +97,20 @@ public class DijkstraStrategy extends Strategy {
 	    
 	    // in the final version, the lanes are added from the current location
 	    // as the first row
-	    // addLane(Trap Type, Coordinate.x, Coordinate.y, Weight (based on trap))
-	    addLane(MapTile.Type.START, 0, 1, 1);
-	    addLane(MapTile.Type.ROAD, 0, 2, 310000);
-	    addLane(MapTile.Type.ROAD, 1, 3, 3);
-	    addLane(MapTile.Type.ROAD, 2, 6, 5);
-	    addLane(MapTile.Type.ROAD, 2, 7, 6);
-	    addLane(MapTile.Type.ROAD, 3, 7, 7);
-	    addLane(MapTile.Type.ROAD, 7, 10, 250);
+	    // addLane(Edge, Coordinate 1 / Vertex, Coordinate 2 / Vertex, Weight (based on trap))
+	    addLane(MapTile.Type.START, 0, 1);
+	    addLane(MapTile.Type.ROAD, 0, 2);
+	    addLane(MapTile.Type.ROAD, 1, 3);
+	    addLane(MapTile.Type.ROAD, 2, 6);
+	    addLane(MapTile.Type.ROAD, 2, 7);
+	    addLane(MapTile.Type.ROAD, 3, 7);
+	    addLane(MapTile.Type.ROAD, 7, 10);
 	    // weight for wall should be extremely large
-	    addLane(MapTile.Type.WALL, 8, 9, 100000);
-	    addLane(MapTile.Type.ROAD, 7, 9, 2);
-	    addLane(MapTile.Type.ROAD, 4, 9, 3);
-	    addLane(MapTile.Type.ROAD, 9, 10, 4);
-	    addLane(MapTile.Type.ROAD, 1, 10, 10000);
+	    addLane(MapTile.Type.WALL, 8, 9);
+	    addLane(MapTile.Type.ROAD, 7, 9);
+	    addLane(MapTile.Type.ROAD, 4, 9);
+	    addLane(MapTile.Type.ROAD, 9, 10);
+	    addLane(MapTile.Type.ROAD, 1, 10);
 	
 	    // Lets check from location Loc_1 to Loc_10
 	    this.graph = new Graph(nodes, edges);
@@ -109,7 +122,7 @@ public class DijkstraStrategy extends Strategy {
 	    
 	    execute(nodes.get(0));
 	    // LinkedList<Vertex> path = dijkstra.getPath(nodes.get(10));
-	    LinkedList<Vertex> path = getPath(nodes.get(10));
+	    path = getPath(nodes.get(10));
 	
 	    assert path != null;
 	    assert path.size() > 0;
@@ -119,9 +132,8 @@ public class DijkstraStrategy extends Strategy {
 	    }
 	}
 
-	private void addLane(MapTile.Type tileType, int sourceLocNo, int destLocNo,
-	        int weight) {
-	    Edge lane = new Edge(tileType, nodes.get(sourceLocNo), nodes.get(destLocNo), weight);
+	private void addLane(MapTile.Type tileType, int sourceLocNo, int destLocNo) {
+	    Edge lane = new Edge(tileType, nodes.get(sourceLocNo), nodes.get(destLocNo));
 	    edges.add(lane);
 	}
 	
@@ -226,9 +238,55 @@ public class DijkstraStrategy extends Strategy {
 
 	MoveDecision getNextMove(HashMap<Coordinate, MapTile> map, boolean isFollowingWall,
 			Direction previousState) {
-		// TODO Auto-generated method stub
-		int nextMove = 1;
-		MoveDecision thisMove = new MoveDecision(isFollowingWall, previousState, nextMove, map);
-		return thisMove;
+		// we need to first take the next tile on the route
+		buildRoute();
+		Vertex nextVertex = path.get(1);
+		int xDirection = nextVertex.getLocation().getX() - currentLoc.getX();
+		int yDirection = nextVertex.getLocation().getY() - currentLoc.getY();
+		
+		
+		// iterate through the linked list
+		for (Vertex spot : path) {
+			System.out.println("location is: ");
+			System.out.println(spot.getLocation().getX());
+			System.out.println(spot.getLocation().getY());
+			
+		}
+		
+		
+		int directionMoving;
+		MoveDecision nextMove;
+		System.out.println("nextVertex X is: ");
+		System.out.println(nextVertex.getLocation().getX());
+		System.out.println("our X is: ");
+		System.out.println(currentLoc.getX());
+		System.out.println("nextVertex Y is: ");
+		System.out.println(nextVertex.getLocation().getY());
+		System.out.println("our Y is: ");
+		System.out.println(currentLoc.getY());
+		
+		// we need to go up
+		if (yDirection > 0) {
+//			nextMove = new MoveDecision(boolean isFollowingWall, WorldSpatial.Direction previousState, int nextMove,
+//			HashMap<Coordinate, MapTile> map)
+			directionMoving = 4;
+		} 
+		
+		// we need to go down
+		else if (yDirection < 0 ){
+			directionMoving = 3;
+		}
+		
+		// we need to go right
+		else if (xDirection > 0) {
+			directionMoving = 2;
+		}
+		
+		// we need to go left
+		else  {
+			directionMoving = 1;
+		}
+		nextMove = new MoveDecision(isFollowingWall, previousState, directionMoving, worldMap);
+		return nextMove;
 	}
 }

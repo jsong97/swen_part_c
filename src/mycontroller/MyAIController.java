@@ -35,7 +35,17 @@ public class MyAIController extends CarController{
 	public MyAIController(Car car) {
 		super(car);
 		// currentStrategy = StrategyFactory.getInstance().getWallFollowingStrategy();
-		currentStrategy = StrategyFactory.getInstance().getDijkstraStrategy();
+		
+		// get the current view and location that we need to pass into Dijkstra
+		HashMap<Coordinate, MapTile> currentView = getView();
+		Coordinate currentLoc = new Coordinate(getPosition());
+		
+		// in the final edition, this would need to be a function leading to the key we can
+		// pick up at this time.
+		
+		Coordinate finalDestination = new Coordinate(5, 5);
+		currentStrategy = StrategyFactory.getInstance().getDijkstraStrategy(car, currentLoc, 
+				currentView, finalDestination, previousState);
 	}
 
 	@Override

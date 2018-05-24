@@ -3,22 +3,35 @@ package mycontroller;
 import tiles.MapTile;
 
 public class Edge  {
-    private final MapTile.Type tileType;
-    private final Vertex source;
+    private MapTile.Type tileType;
+	private final Vertex source;
     private final Vertex destination;
     private final int weight;
     
 
-    public Edge(MapTile.Type tileType, Vertex source, Vertex destination, int weight) {
+    public Edge(MapTile.Type tileType, Vertex source, Vertex destination) {
         this.tileType = tileType;
-        this.source = source;
+    	this.source = source;
         this.destination = destination;
-        this.weight = weight;
+        switch (this.tileType) {
+		case WALL:
+			this.weight = 100000;
+			break;
+		case ROAD:
+			this.weight = 1;
+			break;
+		case START:
+			this.weight = 1;
+			break;
+		case FINISH:
+			this.weight = 1;
+			break;
+		default:
+			this.weight = 1;
+			break;
+        }
     }
 
-    public MapTile.Type getTileType() {
-        return tileType;
-    }
     public Vertex getDestination() {
         return destination;
     }
