@@ -21,6 +21,8 @@ public class MyAIController extends CarController{
 	private boolean isTurningLeft = false;
 	private boolean isTurningRight = false; 
 	private WorldSpatial.Direction previousState = null; // Keeps track of the previous state
+	enum CAR_STATE { FINDING_KEYS, RETRIEVING_KEYS, REVERSING };
+	CAR_STATE currentState;
 	
 	// Car Speed to move at
 	private final float CAR_SPEED = 3;
@@ -34,25 +36,29 @@ public class MyAIController extends CarController{
 	
 	public MyAIController(Car car) {
 		super(car);
-		currentStrategy = StrategyFactory.getInstance().getWallFollowingStrategy();
+		currentState = CAR_STATE.FINDING_KEYS;
+		Strategy keyFinding = WallFollowingStrategy.getInstance(car, wallSensitivity, EAST_THRESHOLD);
+		currentStrategy = keyFinding;
+		
 	}
 
 	@Override
 	public void update(float delta) {
-		switch (this.currentStrategy.getNextMove(this.map, getX(), getY(), isFollowingWall, previousState)) {
-			case 1:
-				applyForwardAcceleration();
-				break;
-			case 2:
-				applyReverseAcceleration();
-				break;
-			case 3:
-				turnLeft(delta);
-				break;
-			case 4:
-				turnRight(delta);
-				break;
+		if (currentState == CAR_STATE.FINDING_KEYS) {
+			boolean stuck = this.currentStrategy.getNextMove(this.map, delta);
+			if (stuck) {
+				System.out.println("Time to reverse");
+				currentState = CAR_STATE.REVERSING;
+				currentStrategy = ReverseStrategy.getInstance(car);
+			}
+		} else if (currentState == CAR_STATE.REVERSING) {
+			boolean gucci = this.currentStrategy.getNextMove(this.map, delta);
+			if (gucci) {
+				currentState = CAR_STATE.FINDING_KEYS;
+				currentStrategy = WallFollowingStrategy.getInstance(car, wallSensitivity, EAST_THRESHOLD);
+			}
 		}
+		
 				
 	}
 	

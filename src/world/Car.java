@@ -83,8 +83,8 @@ public class Car extends Sprite{
 			setX(World.getCarStart().x);
 			setY(World.getCarStart().y);
 		}
-		CAR_WIDTH = (int) sprite.getWidth();
-		CAR_HEIGHT = (int) sprite.getHeight();
+		CAR_WIDTH = (int) Math.min(sprite.getWidth(),sprite.getHeight());
+		CAR_HEIGHT = CAR_WIDTH;
 
 		this.currentOrientation = WorldSpatial.Direction.EAST;
 	}
@@ -541,11 +541,11 @@ public class Car extends Sprite{
 
 	// Debug mode for the car
 	public void printDebug(){
-		MapTile tile = World.lookUp(getX(), getY());
-		MapTile.Type tileType = tile.getType();
-		String trapType = (tileType == MapTile.Type.TRAP ? "("+((TrapTile) tile).getTrap()+")":"");
-		logger.info("Speed: %5.1f; Angle: %5.1f; Position: %5s; Key: %2d; Health: %5.1f; Tile: %s%s",
-				getSpeed(), getAngle(), getPosition(), getKey(), getHealth(), tileType, trapType);
+//		MapTile tile = World.lookUp(getX(), getY());
+//		MapTile.Type tileType = tile.getType();
+//		String trapType = (tileType == MapTile.Type.TRAP ? "("+((TrapTile) tile).getTrap()+")":"");
+//		logger.info("Speed: %5.1f; Angle: %5.1f; Position: %5s; Key: %2d; Health: %5.1f; Tile: %s%s",
+//				getSpeed(), getAngle(), getPosition(), getKey(), getHealth(), tileType, trapType);
 	}
 
 	public HashMap<Coordinate,MapTile> getView(){
