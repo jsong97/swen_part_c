@@ -369,5 +369,4 @@ public class AIController extends CarController {
 		}
 		return false;
 	}
-	
 }

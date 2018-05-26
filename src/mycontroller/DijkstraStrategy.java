@@ -86,43 +86,60 @@ public class DijkstraStrategy extends Strategy {
     	this.nodes = new ArrayList<Vertex>();
         this.edges = new ArrayList<Edge>();
         
-	    for (int i = 0; i < 11; i++) {
-	    	Coordinate coordinates = new Coordinate(i, i);
-	        Vertex location = new Vertex("Node_" + i, "Node_" + i, coordinates);
-	        nodes.add(location);
+        // converting HashMap into something useable
+        // just an iterator to give ids to the nodes
+        int id_count = 0;
+        
+        // also find the destination id of the coordinate
+        int destination_id = 0;
+        
+        
+	    for (Coordinate key : worldMap.keySet()) {
+	    	Vertex location = new Vertex(id_count, key);
+	    	nodes.add(location);
+	    	id_count += 1;
+	    	if (key.equals(finalDestination)) {
+	    		destination_id = id_count;
+	    	}
 	    }
 	    
-	    // in the final version, this will take in the HashMap and build
-	    // the node graph out of it. For now, we just create random locations
+	    // we need to convert the HashMap<Coordinate, MapTile>
+	    // right now just adding random coordinates
 	    
-	    // in the final version, the lanes are added from the current location
-	    // as the first row
-	    // addLane(Edge, Coordinate 1 / Vertex, Coordinate 2 / Vertex, Weight (based on trap))
-	    addLane(MapTile.Type.START, 0, 1);
-	    addLane(MapTile.Type.ROAD, 0, 2);
-	    addLane(MapTile.Type.ROAD, 1, 3);
-	    addLane(MapTile.Type.ROAD, 2, 6);
-	    addLane(MapTile.Type.ROAD, 2, 7);
-	    addLane(MapTile.Type.ROAD, 3, 7);
-	    addLane(MapTile.Type.ROAD, 7, 10);
-	    // weight for wall should be extremely large
-	    addLane(MapTile.Type.WALL, 8, 9);
-	    addLane(MapTile.Type.ROAD, 7, 9);
-	    addLane(MapTile.Type.ROAD, 4, 9);
-	    addLane(MapTile.Type.ROAD, 9, 10);
-	    addLane(MapTile.Type.ROAD, 1, 10);
+	    // now we need to build all possible edges that we can
+	    // need a nested array...
+	    for (Vertex spot : nodes) {
+	    	int spot_x_loc = spot.getLocation().getX();
+	    	int spot_y_loc = spot.getLocation().getY();
+	    	for (Vertex inner_spot : nodes) {
+	    		int inner_spot_x_loc = inner_spot.getLocation().getX();
+	    		int inner_spot_y_loc = inner_spot.getLocation().getY();
+		    	if (spot_x_loc == inner_spot_x_loc) {
+		    		// 'inner spot' is either right below or right above 'spot'
+		    		if (((spot_y_loc - inner_spot_y_loc) == 1) || 
+		    				((spot_y_loc - inner_spot_y_loc) == -1)) {
+		    			addLane(spot.getId(), inner_spot.getId());
+		    		}
+		    	} 
+		    	else if (spot_y_loc == inner_spot_y_loc) {
+		    		// 'inner spot' is either left or right of 'spot'
+		    		if (((spot_x_loc - inner_spot_x_loc) == 1) || 
+		    				((spot_x_loc - inner_spot_x_loc) == -1)) {
+		    			addLane(spot.getId(), inner_spot.getId());
+		    		}
+		    	}
+		    }
+	    }
 	
 	    // Lets check from location Loc_1 to Loc_10
 	    this.graph = new Graph(nodes, edges);
 	    
-	    //DijkstraAlgorithm dijkstra = new DijkstraAlgorithm(graph);
-	    //dijkstra.execute(nodes.get(0));
 	    
-	    // this should get the start location instead of 0
-	    
+	    // the location we'll start from (vertex 0)
 	    execute(nodes.get(0));
-	    // LinkedList<Vertex> path = dijkstra.getPath(nodes.get(10));
-	    path = getPath(nodes.get(10));
+	    
+	    // the target location and the path to it (destination vertex in this case)
+	    path = getPath(nodes.get(destination_id));
 	
 	    assert path != null;
 	    assert path.size() > 0;
@@ -132,8 +149,44 @@ public class DijkstraStrategy extends Strategy {
 	    }
 	}
 
-	private void addLane(MapTile.Type tileType, int sourceLocNo, int destLocNo) {
-	    Edge lane = new Edge(tileType, nodes.get(sourceLocNo), nodes.get(destLocNo));
+	public void addLane(int sourceLocNo, int destLocNo) {
+		Coordinate sourceLoc = nodes.get(sourceLocNo).getLocation();
+		Coordinate destLoc = nodes.get(sourceLocNo).getLocation();
+		int firstWeight = 0;
+		int secondWeight = 0;
+		int finalWeight = 0;
+		for (Coordinate key : worldMap.keySet()){
+			if (sourceLoc.equals(key)) {
+				switch(worldMap.get(key).getType()) {
+					case WALL:
+						firstWeight = 10000;
+						break;
+					case TRAP:
+						firstWeight = 10;
+						break;
+					default:
+						firstWeight = 1;
+						break;
+				}
+			}
+		};
+		for (Coordinate key : worldMap.keySet()){
+			if (destLoc.equals(key)) {
+				switch(worldMap.get(key).getType()) {
+					case WALL:
+						secondWeight = 10000;
+						break;
+					case TRAP:
+						secondWeight = 10;
+						break;
+					default:
+						secondWeight = 1;
+						break;
+				}
+			}
+		};
+		finalWeight = firstWeight + secondWeight;
+	    Edge lane = new Edge(nodes.get(sourceLocNo), nodes.get(destLocNo), finalWeight);
 	    edges.add(lane);
 	}
 	
@@ -219,6 +272,7 @@ public class DijkstraStrategy extends Strategy {
      * This method returns the path from the source to the selected target and
      * NULL if no path exists
      */
+    
     public LinkedList<Vertex> getPath(Vertex target) {
         LinkedList<Vertex> path = new LinkedList<Vertex>();
         Vertex step = target;
@@ -240,35 +294,17 @@ public class DijkstraStrategy extends Strategy {
 			Direction previousState) {
 		// we need to first take the next tile on the route
 		buildRoute();
+		
+		// get the next stop on the path
 		Vertex nextVertex = path.get(1);
 		int xDirection = nextVertex.getLocation().getX() - currentLoc.getX();
 		int yDirection = nextVertex.getLocation().getY() - currentLoc.getY();
 		
-		
-		// iterate through the linked list
-		for (Vertex spot : path) {
-			System.out.println("location is: ");
-			System.out.println(spot.getLocation().getX());
-			System.out.println(spot.getLocation().getY());
-			
-		}
-		
-		
 		int directionMoving;
 		MoveDecision nextMove;
-		System.out.println("nextVertex X is: ");
-		System.out.println(nextVertex.getLocation().getX());
-		System.out.println("our X is: ");
-		System.out.println(currentLoc.getX());
-		System.out.println("nextVertex Y is: ");
-		System.out.println(nextVertex.getLocation().getY());
-		System.out.println("our Y is: ");
-		System.out.println(currentLoc.getY());
 		
 		// we need to go up
 		if (yDirection > 0) {
-//			nextMove = new MoveDecision(boolean isFollowingWall, WorldSpatial.Direction previousState, int nextMove,
-//			HashMap<Coordinate, MapTile> map)
 			directionMoving = 4;
 		} 
 		
@@ -286,6 +322,7 @@ public class DijkstraStrategy extends Strategy {
 		else  {
 			directionMoving = 1;
 		}
+		System.out.println("direction moving is: " + directionMoving);
 		nextMove = new MoveDecision(isFollowingWall, previousState, directionMoving, worldMap);
 		return nextMove;
 	}
