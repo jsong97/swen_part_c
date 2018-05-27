@@ -6,7 +6,6 @@ import controller.CarController;
 import tiles.MapTile;
 import utilities.Coordinate;
 import world.Car;
-import world.WorldSpatial;
 
 public class MyAIController extends CarController{
 
@@ -46,7 +45,7 @@ public class MyAIController extends CarController{
 	public void update(float delta) {
 		if (currentState == CAR_STATE.FINDING_KEYS) {
 			this.keyMap = this.currentStrategy.getNextMove(this.map, delta);
-			if (keyMap.size() == numKeys){
+			if ((keyMap != null) && (keyMap.size() == numKeys)){
 				System.out.println("SWAPPING TO DIJKSTRA");
 				currentState = CAR_STATE.RETRIEVING_KEYS;
 			}

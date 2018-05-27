@@ -62,7 +62,7 @@ public class Car extends Sprite{
 	private static int CAR_HEIGHT;
 
 	private float health;
-	public static final float MAX_HEALTH = 100;
+	public static final float MAX_HEALTH = 10000;
 	
 	private int key = 1; // If no keys elsewhere, we have the exit key
 
