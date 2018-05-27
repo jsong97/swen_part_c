@@ -5,9 +5,6 @@ import java.util.HashMap;
 import tiles.MapTile;
 import utilities.Coordinate;
 import world.Car;
-import world.WorldSpatial;
-import world.WorldSpatial.Direction;
-import world.WorldSpatial.RelativeDirection;
 
 public abstract class Strategy {
 	protected Car car;
@@ -16,6 +13,6 @@ public abstract class Strategy {
 		this.car = car;
 	}
 
-	abstract boolean getNextMove(HashMap<Coordinate, MapTile> map, float delta);
+	abstract HashMap<Coordinate, Integer> getNextMove(HashMap<Coordinate, MapTile> map, float delta);
 	
 }

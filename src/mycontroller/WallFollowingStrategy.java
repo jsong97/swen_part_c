@@ -37,11 +37,15 @@ public class WallFollowingStrategy extends Strategy {
 	private HashMap<Coordinate, MapTile> map;
 	public HashMap<Coordinate, Integer> keyMap;
 	MoveDecision nextMove;
-	List<Coordinate> visitedCoords;
+	HashMap<Coordinate, Integer> visitedCoords;
 	
 	private int EAST_THRESHOLD;
-	private int LAVA_ENTRY_THRESHOLD = 930;
+	
+	// Dont enter lava below 30 health
+	private int LAVA_ENTRY_THRESHOLD = 30;
 	private int keysToFind;
+	private boolean isReversing = false;
+	private float reverseDelta = 0;
 	
 	public WallFollowingStrategy(Car car, int wallSensitivity, int EAST_THRESHOLD) {
 		super(car);
@@ -49,20 +53,23 @@ public class WallFollowingStrategy extends Strategy {
 		this.EAST_THRESHOLD = EAST_THRESHOLD;
 		map = World.getMap();
 		keyMap = new HashMap<Coordinate, Integer>();
-		visitedCoords = new ArrayList<Coordinate>();
+		visitedCoords = new HashMap<Coordinate, Integer>();
 		keysToFind = car.getKey();
 	}
 	
-	public boolean getNextMove(HashMap<Coordinate, MapTile> map, float delta) {
+
+	public HashMap<Coordinate, Integer> getNextMove(HashMap<Coordinate, MapTile> map, float delta) {
+		// Check if need to reverse
+		if (this.isReversing) {
+			reverse(delta);
+			return null;
+		}
+		
 		// Gets what the car can see
 		HashMap<Coordinate, MapTile> currentView = car.getView();
 		
 		//Update map
-		for (Coordinate coord : currentView.keySet()) {
-			if (!visitedCoords.contains(coord)) {
-				visitedCoords.add(coord);
-			}
-			
+		for (Coordinate coord : currentView.keySet()) {			
 			MapTile tile = currentView.get(coord);
 			if (tile.getType().equals(MapTile.Type.TRAP)) {
 				this.map.put(coord, tile);
@@ -73,19 +80,29 @@ public class WallFollowingStrategy extends Strategy {
 			}
 		}
 		
-		System.out.println(keyMap.size());
+		updateVisitedCoords();
+		
+		// Stand on health trap
+		Coordinate currentPosition = new Coordinate(Math.round(car.getX()), Math.round(car.getY()));
+//		if (map.containsKey(currentPosition) && map.get(currentPosition) instanceof HealthTrap && car.getHealth() < car.MAX_HEALTH) {
+//			car.brake();
+//		}
+
+		
+		
+		
 		checkStateChange();
-		detectBox(currentView, delta);
+//		detectBox(currentView, delta);
 		
 		// Check if finished finding keys
 		if (keyMap.size() >= keysToFind - 1) {
-			System.out.println("We donezo");
-			return false;
+			return null;
 		}
 		
 		// Check if stuck somewhere
 		if (car.getSpeed() == 0 && visitedCoords.size() > 81) {
-			return true;
+			this.isReversing = true;
+			return null;
 		}
 
 		// If you are not following a wall initially, find a wall to stick to!
@@ -154,7 +171,18 @@ public class WallFollowingStrategy extends Strategy {
 			}
 		}
 		
-		return false;
+		return keyMap;
+	}
+	
+	public void updateVisitedCoords() {
+		Coordinate coord = new Coordinate(Math.round(car.getX()), Math.round(car.getY()));
+		if (visitedCoords.containsKey(coord)) {
+			int timesVisited = visitedCoords.get(coord);
+			visitedCoords.put(coord, timesVisited++);
+		}
+		else {
+			visitedCoords.put(coord, 1);
+		}
 	}
 	
 	
@@ -174,8 +202,6 @@ public class WallFollowingStrategy extends Strategy {
 		}
 		
 		if (count == 3) {
-			System.out.println("Box detected\n");
-//			turnAround(delta);
 			return true;
 		}
 		
@@ -198,6 +224,23 @@ public class WallFollowingStrategy extends Strategy {
 			}
 		}
 		
+	}
+	
+	public void reverse(float delta) {
+		System.out.println("Trying to reverse");
+		this.reverseDelta += delta;
+		if (this.reverseDelta < 0.4) {
+			car.applyReverseAcceleration();
+			car.turnLeft(delta);
+		}
+		else if (this.reverseDelta < 1.5){
+			car.applyForwardAcceleration();
+		}
+		else {
+			this.reverseDelta = 0;
+			System.out.println("Done");
+			this.isReversing = false;
+		}
 	}
 	
 	/**

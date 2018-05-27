@@ -62,7 +62,7 @@ public class Car extends Sprite{
 	private static int CAR_HEIGHT;
 
 	private float health;
-	private static final float MAX_HEALTH = 1000;
+	public static final float MAX_HEALTH = 100;
 	
 	private int key = 1; // If no keys elsewhere, we have the exit key
 
@@ -541,11 +541,11 @@ public class Car extends Sprite{
 
 	// Debug mode for the car
 	public void printDebug(){
-		MapTile tile = World.lookUp(getX(), getY());
-		MapTile.Type tileType = tile.getType();
-		String trapType = (tileType == MapTile.Type.TRAP ? "("+((TrapTile) tile).getTrap()+")":"");
-		logger.info("Speed: %5.1f; Angle: %5.1f; Position: %5s; Key: %2d; Health: %5.1f; Tile: %s%s",
-				getSpeed(), getAngle(), getPosition(), getKey(), getHealth(), tileType, trapType);
+//		MapTile tile = World.lookUp(getX(), getY());
+//		MapTile.Type tileType = tile.getType();
+//		String trapType = (tileType == MapTile.Type.TRAP ? "("+((TrapTile) tile).getTrap()+")":"");
+//		logger.info("Speed: %5.1f; Angle: %5.1f; Position: %5s; Key: %2d; Health: %5.1f; Tile: %s%s",
+//				getSpeed(), getAngle(), getPosition(), getKey(), getHealth(), tileType, trapType);
 	}
 
 	public HashMap<Coordinate,MapTile> getView(){
