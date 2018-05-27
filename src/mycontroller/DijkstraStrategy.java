@@ -379,55 +379,60 @@ public class DijkstraStrategy extends MovementStrategy {
 		// Gets what the car can see
 		HashMap<Coordinate, MapTile> currentView = car.getView();
 		
-		
-		// first, get the car up to speed
-		if(car.getSpeed() < CAR_SPEED){
-			car.applyForwardAcceleration();
+		// Stand on health trap
+		if (map.containsKey(currentLoc) && map.get(currentLoc) instanceof HealthTrap && car.getHealth() < car.MAX_HEALTH) {
+			car.brake();
 		}
-		switch (decisionMade) {
-		
-			// need to turn north
-			case 1:
-				if(!car.getOrientation().equals(WorldSpatial.Direction.NORTH)){
-					lastTurnDirection = WorldSpatial.RelativeDirection.LEFT;
-					applyLeftTurn(car.getOrientation(),delta);
-				}
-				break;
-				
-			// need to turn east
-			case 2:
-				if(checkNorth(currentView)){
-					// Turn right until we go back to east!
-					if(!car.getOrientation().equals(WorldSpatial.Direction.EAST)){
-						lastTurnDirection = WorldSpatial.RelativeDirection.RIGHT;
-						applyRightTurn(car.getOrientation(),delta);
+		else {
+			// first, get the car up to speed
+			if(car.getSpeed() < CAR_SPEED){
+				car.applyForwardAcceleration();
+			}
+			switch (decisionMade) {
+			
+				// need to turn north
+				case 1:
+					if(!car.getOrientation().equals(WorldSpatial.Direction.NORTH)){
+						lastTurnDirection = WorldSpatial.RelativeDirection.LEFT;
+						applyLeftTurn(car.getOrientation(),delta);
 					}
-				}
-				break;
-				
-			// need to turn south
-			case 3:
-				if(checkNorth(currentView)){
-					// Turn right until we go back to east!
-					if(!car.getOrientation().equals(WorldSpatial.Direction.SOUTH)){
-						lastTurnDirection = WorldSpatial.RelativeDirection.RIGHT;
-						applyRightTurn(car.getOrientation(),delta);
+					break;
+					
+				// need to turn east
+				case 2:
+					if(checkNorth(currentView)){
+						// Turn right until we go back to east!
+						if(!car.getOrientation().equals(WorldSpatial.Direction.EAST)){
+							lastTurnDirection = WorldSpatial.RelativeDirection.RIGHT;
+							applyRightTurn(car.getOrientation(),delta);
+						}
 					}
-				}
-				break;
-				
-			// need to turn west
-			case 4:
-				if(checkNorth(currentView)){
-					// Turn right until we go back to east!
-					if(!car.getOrientation().equals(WorldSpatial.Direction.WEST)){
-						lastTurnDirection = WorldSpatial.RelativeDirection.RIGHT;
-						applyRightTurn(car.getOrientation(),delta);
+					break;
+					
+				// need to turn south
+				case 3:
+					if(checkNorth(currentView)){
+						// Turn right until we go back to east!
+						if(!car.getOrientation().equals(WorldSpatial.Direction.SOUTH)){
+							lastTurnDirection = WorldSpatial.RelativeDirection.RIGHT;
+							applyRightTurn(car.getOrientation(),delta);
+						}
 					}
-				}
-				break;
+					break;
+					
+				// need to turn west
+				case 4:
+					if(checkNorth(currentView)){
+						// Turn right until we go back to east!
+						if(!car.getOrientation().equals(WorldSpatial.Direction.WEST)){
+							lastTurnDirection = WorldSpatial.RelativeDirection.RIGHT;
+							applyRightTurn(car.getOrientation(),delta);
+						}
+					}
+					break;
+			}
 		}
-		return keyMap;			
+		return keyMap;
 	}
 	
 	/**

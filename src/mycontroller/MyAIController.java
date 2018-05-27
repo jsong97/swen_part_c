@@ -53,11 +53,7 @@ public class MyAIController extends CarController{
 		} 
 		else if (currentState == CAR_STATE.RETRIEVING_KEYS) {
 			currentStrategy = DijkstraStrategy.getInstance(car, keyMap);
-			this.keyMap = this.currentStrategy.makeNextMove(this.map, delta);
-			
+			this.keyMap = this.currentStrategy.makeNextMove(this.map, delta);		
 		}			
 	}
-	
-	
-
 }
