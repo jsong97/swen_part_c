@@ -22,6 +22,16 @@ import world.WorldSpatial;
 import world.WorldSpatial.Direction;
 import world.Car;
 
+import tiles.HealthTrap;
+import tiles.LavaTrap;
+import tiles.MapTile;
+import world.WorldSpatial.RelativeDirection;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+
+
 
 // the Dijkstra class needs to:
 // 1. get the hashmap of the map
@@ -39,6 +49,7 @@ public class DijkstraStrategy extends Strategy {
     private Coordinate currentLoc;
     
     // this is the destination
+    private HashMap<Coordinate, Integer> keyMap;
     private Coordinate finalDestination;
     
     // these are needed to build a map of nodes
@@ -49,6 +60,27 @@ public class DijkstraStrategy extends Strategy {
     private Map<Vertex, Vertex> predecessors;
     private Map<Vertex, Integer> distance;
     
+	HashMap<Coordinate, MapTile> map;
+	HashMap<Coordinate, Boolean> visitedMap;
+	
+	Strategy currentStrategy;
+	// How many minimum units the wall is away from the player.
+	private int wallSensitivity = 2;
+	private boolean isFollowingWall = false; // This is initialized when the car sticks to a wall.
+	private WorldSpatial.RelativeDirection lastTurnDirection = null; // Shows the last turn direction the car takes.
+	private boolean isTurningLeft = false;
+	private boolean isTurningRight = false; 
+	
+	// Car Speed to move at
+	private final float CAR_SPEED = 3;
+	
+	// Offset used to differentiate between 0 and 360 degrees
+	private int EAST_THRESHOLD = 3;
+	
+	
+	Coordinate initialGuess;
+	boolean notSouth = true;
+    
     // this is the graph we use to perform dijkstra
     private Graph graph;
     
@@ -56,27 +88,42 @@ public class DijkstraStrategy extends Strategy {
     private LinkedList<Vertex> path;
     
     private Car car;
-    private WorldSpatial.Direction previousState;
 
-    public DijkstraStrategy(Car car, Coordinate currentLoc, 
-    		HashMap<Coordinate,MapTile> currentView, Coordinate finalDestination,
-    		WorldSpatial.Direction previousState) {
+    private static DijkstraStrategy instance = null;
+    
+    public static DijkstraStrategy getInstance(Car car) {
+		if (instance == null) {
+			instance = new DijkstraStrategy(car);
+		}
+		return instance;
+	}
+  
+    public DijkstraStrategy(Car car) {
     	// get the overall map from the game
+    	super(car);
     	this.worldMap = World.getMap();
     	this.car = car;
-    	this.previousState = previousState;
-    	this.currentLoc = currentLoc;
+    	this.currentLoc = new Coordinate(car.getPosition());
     	
     	// add the destination and the current view
     	// this is all in mapDetails()
     	// add the destination
-    	this.finalDestination = finalDestination;
     	
     	// get the current view from MyAIController
-    	this.currentView = currentView;
+    	this.currentView = car.getView();
     	
         // use the buildRoute() function to get the route and graph
         // use getNextMove() to return the next step   
+    }
+    
+    public void setDestination(HashMap<Coordinate, Integer> keyMap) {
+    	this.keyMap = keyMap;
+    	int keyToFind = car.getKey();
+    	for (Coordinate keyLoc : keyMap.keySet()) {
+    		if (keyToFind == keyMap.get(keyLoc)) {
+    			this.finalDestination = keyLoc;
+    		}
+    	}
     }
   
     
@@ -106,8 +153,8 @@ public class DijkstraStrategy extends Strategy {
 	    // we need to convert the HashMap<Coordinate, MapTile>
 	    // right now just adding random coordinates
 	    
-	    // now we need to build all possible edges that we can
-	    // need a nested array...
+	    // now we need to build all possible edges that we can...
+	    // also need a nested array...
 	    for (Vertex spot : nodes) {
 	    	int spot_x_loc = spot.getLocation().getX();
 	    	int spot_y_loc = spot.getLocation().getY();
@@ -116,15 +163,19 @@ public class DijkstraStrategy extends Strategy {
 	    		int inner_spot_y_loc = inner_spot.getLocation().getY();
 		    	if (spot_x_loc == inner_spot_x_loc) {
 		    		// 'inner spot' is either right below or right above 'spot'
-		    		if (((spot_y_loc - inner_spot_y_loc) == 1) || 
-		    				((spot_y_loc - inner_spot_y_loc) == -1)) {
+		    		if (spot_y_loc - inner_spot_y_loc == 1){
+		    			addLane(spot.getId(), inner_spot.getId());
+		    		}
+		    		else if ((spot_y_loc - inner_spot_y_loc) == -1) {
 		    			addLane(spot.getId(), inner_spot.getId());
 		    		}
 		    	} 
 		    	else if (spot_y_loc == inner_spot_y_loc) {
 		    		// 'inner spot' is either left or right of 'spot'
-		    		if (((spot_x_loc - inner_spot_x_loc) == 1) || 
-		    				((spot_x_loc - inner_spot_x_loc) == -1)) {
+		    		if (spot_x_loc - inner_spot_x_loc == 1){
+		    			addLane(spot.getId(), inner_spot.getId());
+		    		}
+		    		else if ((spot_x_loc - inner_spot_x_loc) == -1) {
 		    			addLane(spot.getId(), inner_spot.getId());
 		    		}
 		    	}
@@ -290,8 +341,7 @@ public class DijkstraStrategy extends Strategy {
         return path;
     }
 
-	MoveDecision getNextMove(HashMap<Coordinate, MapTile> map, boolean isFollowingWall,
-			Direction previousState) {
+	int findDirectionToMove(HashMap<Coordinate, MapTile> map, boolean isFollowingWall) {
 		// we need to first take the next tile on the route
 		buildRoute();
 		
@@ -301,7 +351,6 @@ public class DijkstraStrategy extends Strategy {
 		int yDirection = nextVertex.getLocation().getY() - currentLoc.getY();
 		
 		int directionMoving;
-		MoveDecision nextMove;
 		
 		// we need to go up
 		if (yDirection > 0) {
@@ -322,8 +371,315 @@ public class DijkstraStrategy extends Strategy {
 		else  {
 			directionMoving = 1;
 		}
-		System.out.println("direction moving is: " + directionMoving);
-		nextMove = new MoveDecision(isFollowingWall, previousState, directionMoving, worldMap);
-		return nextMove;
+		return directionMoving;
+	}
+	
+	public boolean getNextMove(HashMap<Coordinate, MapTile> map, float delta) {
+		// going to assume that we know the coordinate we're getting to:
+		setDestination(WallFollowingStrategy.keyMap);
+		
+		// MoveDecision decisionMade = currentStrategy.getNextMove(this.map, getX(), getY(), isFollowingWall, previousState);
+		int decisionMade = findDirectionToMove(this.map, isFollowingWall);
+		
+		
+		// Gets what the car can see
+		HashMap<Coordinate, MapTile> currentView = car.getView();
+		
+		
+		// first, get the car up to speed
+		if(car.getSpeed() < CAR_SPEED){
+			car.applyForwardAcceleration();
+		}
+		switch (decisionMade) {
+		
+			// need to turn north
+			case 1:
+				if(!car.getOrientation().equals(WorldSpatial.Direction.NORTH)){
+					lastTurnDirection = WorldSpatial.RelativeDirection.LEFT;
+					applyLeftTurn(car.getOrientation(),delta);
+				}
+				break;
+				
+			// need to turn east
+			case 2:
+				if(checkNorth(currentView)){
+					// Turn right until we go back to east!
+					if(!car.getOrientation().equals(WorldSpatial.Direction.EAST)){
+						lastTurnDirection = WorldSpatial.RelativeDirection.RIGHT;
+						applyRightTurn(car.getOrientation(),delta);
+					}
+				}
+				break;
+				
+			// need to turn south
+			case 3:
+				if(checkNorth(currentView)){
+					// Turn right until we go back to east!
+					if(!car.getOrientation().equals(WorldSpatial.Direction.SOUTH)){
+						lastTurnDirection = WorldSpatial.RelativeDirection.RIGHT;
+						applyRightTurn(car.getOrientation(),delta);
+					}
+				}
+				break;
+				
+			// need to turn west
+			case 4:
+				if(checkNorth(currentView)){
+					// Turn right until we go back to east!
+					if(!car.getOrientation().equals(WorldSpatial.Direction.WEST)){
+						lastTurnDirection = WorldSpatial.RelativeDirection.RIGHT;
+						applyRightTurn(car.getOrientation(),delta);
+					}
+				}
+				break;
+		}
+		return true;			
+	}
+	
+	/**
+	 * Readjust the car to the orientation we are in.
+	 * @param lastTurnDirection
+	 * @param delta
+	 */
+	private void readjust(WorldSpatial.RelativeDirection lastTurnDirection, float delta) {
+		if(lastTurnDirection != null){
+			if(!isTurningRight && lastTurnDirection.equals(WorldSpatial.RelativeDirection.RIGHT)){
+				adjustRight(car.getOrientation(),delta);
+			}
+			else if(!isTurningLeft && lastTurnDirection.equals(WorldSpatial.RelativeDirection.LEFT)){
+				adjustLeft(car.getOrientation(),delta);
+			}
+		}
+		
+	}
+	
+	/**
+	 * Try to orient myself to a degree that I was supposed to be at if I am
+	 * misaligned.
+	 */
+	private void adjustLeft(WorldSpatial.Direction orientation, float delta) {
+		
+		switch(orientation){
+		case EAST:
+			if(car.getAngle() > WorldSpatial.EAST_DEGREE_MIN+EAST_THRESHOLD){
+				car.turnRight(delta);
+			}
+			break;
+		case NORTH:
+			if(car.getAngle() > WorldSpatial.NORTH_DEGREE){
+				car.turnRight(delta);
+			}
+			break;
+		case SOUTH:
+			if(car.getAngle() > WorldSpatial.SOUTH_DEGREE){
+				car.turnRight(delta);
+			}
+			break;
+		case WEST:
+			if(car.getAngle() > WorldSpatial.WEST_DEGREE){
+				car.turnRight(delta);
+			}
+			break;
+			
+		default:
+			break;
+		}
+		
+	}
+
+	private void adjustRight(WorldSpatial.Direction orientation, float delta) {
+		switch(orientation){
+		case EAST:
+			if(car.getAngle() > WorldSpatial.SOUTH_DEGREE && car.getAngle() < WorldSpatial.EAST_DEGREE_MAX){
+				car.turnLeft(delta);
+			}
+			break;
+		case NORTH:
+			if(car.getAngle() < WorldSpatial.NORTH_DEGREE){
+				car.turnLeft(delta);
+			}
+			break;
+		case SOUTH:
+			if(car.getAngle() < WorldSpatial.SOUTH_DEGREE){
+				car.turnLeft(delta);
+			}
+			break;
+		case WEST:
+			if(car.getAngle() < WorldSpatial.WEST_DEGREE){
+				car.turnLeft(delta);
+			}
+			break;
+			
+		default:
+			break;
+		}
+		
+	}
+	
+	
+	/**
+	 * Turn the car counter clock wise (think of a compass going counter clock-wise)
+	 */
+	private void applyLeftTurn(WorldSpatial.Direction orientation, float delta) {
+		switch(orientation){
+		case EAST:
+			if(!car.getOrientation().equals(WorldSpatial.Direction.NORTH)){
+				car.turnLeft(delta);
+			}
+			break;
+		case NORTH:
+			if(!car.getOrientation().equals(WorldSpatial.Direction.WEST)){
+				car.turnLeft(delta);
+			}
+			break;
+		case SOUTH:
+			if(!car.getOrientation().equals(WorldSpatial.Direction.EAST)){
+				car.turnLeft(delta);
+			}
+			break;
+		case WEST:
+			if(!car.getOrientation().equals(WorldSpatial.Direction.SOUTH)){
+				car.turnLeft(delta);
+			}
+			break;
+		default:
+			break;
+		
+		}
+		
+	}
+	
+	/**
+	 * Turn the car clock wise (think of a compass going clock-wise)
+	 */
+	private void applyRightTurn(WorldSpatial.Direction orientation, float delta) {
+		switch(orientation){
+		case EAST:
+			if(!car.getOrientation().equals(WorldSpatial.Direction.SOUTH)){
+				car.turnRight(delta);
+			}
+			break;
+		case NORTH:
+			if(!car.getOrientation().equals(WorldSpatial.Direction.EAST)){
+				car.turnRight(delta);
+			}
+			break;
+		case SOUTH:
+			if(!car.getOrientation().equals(WorldSpatial.Direction.WEST)){
+				car.turnRight(delta);
+			}
+			break;
+		case WEST:
+			if(!car.getOrientation().equals(WorldSpatial.Direction.NORTH)){
+				car.turnRight(delta);
+			}
+			break;
+		default:
+			break;
+		
+		}
+		
+	}
+
+	/**
+	 * Check if you have a wall in front of you!
+	 * @param orientation the orientation we are in based on WorldSpatial
+	 * @param currentView what the car can currently see
+	 * @return
+	 */
+	private boolean checkWallAhead(WorldSpatial.Direction orientation, HashMap<Coordinate, MapTile> currentView){
+		switch(orientation){
+		case EAST:
+			return checkEast(currentView);
+		case NORTH:
+			return checkNorth(currentView);
+		case SOUTH:
+			return checkSouth(currentView);
+		case WEST:
+			return checkWest(currentView);
+		default:
+			return false;
+		
+		}
+	}
+	
+	/**
+	 * Check if the wall is on your left hand side given your orientation
+	 * @param orientation
+	 * @param currentView
+	 * @return
+	 */
+	private boolean checkFollowingWall(WorldSpatial.Direction orientation, HashMap<Coordinate, MapTile> currentView) {
+		
+		switch(orientation){
+		case EAST:
+			return checkNorth(currentView);
+		case NORTH:
+			return checkWest(currentView);
+		case SOUTH:
+			return checkEast(currentView);
+		case WEST:
+			return checkSouth(currentView);
+		default:
+			return false;
+		}
+		
+	}
+	
+
+	/**
+	 * Method below just iterates through the list and check in the correct coordinates.
+	 * i.e. Given your current position is 10,10
+	 * checkEast will check up to wallSensitivity amount of tiles to the right.
+	 * checkWest will check up to wallSensitivity amount of tiles to the left.
+	 * checkNorth will check up to wallSensitivity amount of tiles to the top.
+	 * checkSouth will check up to wallSensitivity amount of tiles below.
+	 */
+	public boolean checkEast(HashMap<Coordinate, MapTile> currentView){
+		// Check tiles to my right
+		Coordinate currentPosition = new Coordinate(car.getPosition());
+		for(int i = 0; i <= wallSensitivity; i++){
+			MapTile tile = currentView.get(new Coordinate(currentPosition.x+i, currentPosition.y));
+			if(tile.isType(MapTile.Type.WALL)){
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	public boolean checkWest(HashMap<Coordinate,MapTile> currentView){
+		// Check tiles to my left
+		Coordinate currentPosition = new Coordinate(car.getPosition());
+		for(int i = 0; i <= wallSensitivity; i++){
+			MapTile tile = currentView.get(new Coordinate(currentPosition.x-i, currentPosition.y));
+			if(tile.isType(MapTile.Type.WALL)){
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	public boolean checkNorth(HashMap<Coordinate,MapTile> currentView){
+		// Check tiles to towards the top
+		Coordinate currentPosition = new Coordinate(car.getPosition());
+		for(int i = 0; i <= wallSensitivity; i++){
+			MapTile tile = currentView.get(new Coordinate(currentPosition.x, currentPosition.y+i));
+			if(tile.isType(MapTile.Type.WALL)){
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	public boolean checkSouth(HashMap<Coordinate,MapTile> currentView){
+		// Check tiles towards the bottom
+		Coordinate currentPosition = new Coordinate(car.getPosition());
+		for(int i = 0; i <= wallSensitivity; i++){
+			MapTile tile = currentView.get(new Coordinate(currentPosition.x, currentPosition.y-i));
+			if(tile.isType(MapTile.Type.WALL)){
+				return true;
+			}
+		}
+		return false;
 	}
 }
