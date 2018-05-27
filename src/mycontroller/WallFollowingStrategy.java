@@ -75,6 +75,8 @@ public class WallFollowingStrategy extends Strategy {
 				this.map.put(coord, tile);
 				if (tile instanceof LavaTrap && ((LavaTrap) tile).getKey() != 0) {
 					int keyNum = ((LavaTrap)tile).getKey();
+//					System.out.println("found a key! it is: " + keyNum);
+//					System.out.println("keymap size is: " + keyMap.size());
 					keyMap.put(coord, keyNum);
 				}
 			}
@@ -87,9 +89,6 @@ public class WallFollowingStrategy extends Strategy {
 //		if (map.containsKey(currentPosition) && map.get(currentPosition) instanceof HealthTrap && car.getHealth() < car.MAX_HEALTH) {
 //			car.brake();
 //		}
-
-		
-		
 		
 		checkStateChange();
 //		detectBox(currentView, delta);

@@ -13,6 +13,9 @@ public class MyAIController extends CarController{
 	HashMap<Coordinate,MapTile> map;
 	HashMap<Coordinate, Boolean> visitedMap;
 	
+	// we need to find the number of keys there are from the beginning
+	int numKeys;
+	
 	Strategy currentStrategy;
 	// How many minimum units the wall is away from the player.
 	private int wallSensitivity = 2;
@@ -34,18 +37,24 @@ public class MyAIController extends CarController{
 		currentState = CAR_STATE.FINDING_KEYS;
 		Strategy keyFinding = WallFollowingStrategy.getInstance(car, wallSensitivity, EAST_THRESHOLD);
 		currentStrategy = keyFinding;	
+		
+		// instantiate this at the beginning
+		this.numKeys = car.getKey();
 	}
 
 	@Override
 	public void update(float delta) {
 		if (currentState == CAR_STATE.FINDING_KEYS) {
 			this.keyMap = this.currentStrategy.getNextMove(this.map, delta);
-//			if (stuck) {
-//				System.out.println("Time to reverse");
-//				currentState = CAR_STATE.REVERSING;
-//				currentStrategy = ReverseStrategy.getInstance(car);
-//			}
-		} 
+			if (keyMap.size() == numKeys){
+				System.out.println("SWAPPING TO DIJKSTRA");
+				currentState = CAR_STATE.RETRIEVING_KEYS;
+			}
+		} else {
+			currentStrategy = DijkstraStrategy.getInstance(car, keyMap);
+			this.keyMap = this.currentStrategy.getNextMove(this.map, delta);
+			
+		}
 //		else if (currentState == CAR_STATE.REVERSING) {
 //			boolean gucci = this.currentStrategy.getNextMove(this.map, delta);
 //			if (gucci) {

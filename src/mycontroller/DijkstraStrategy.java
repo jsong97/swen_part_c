@@ -91,14 +91,14 @@ public class DijkstraStrategy extends Strategy {
 
     private static DijkstraStrategy instance = null;
     
-    public static DijkstraStrategy getInstance(Car car) {
+    public static DijkstraStrategy getInstance(Car car, HashMap<Coordinate, Integer> keyMap) {
 		if (instance == null) {
-			instance = new DijkstraStrategy(car);
+			instance = new DijkstraStrategy(car, keyMap);
 		}
 		return instance;
 	}
   
-    public DijkstraStrategy(Car car) {
+    public DijkstraStrategy(Car car, HashMap<Coordinate, Integer> keyMap) {
     	// get the overall map from the game
     	super(car);
     	this.worldMap = World.getMap();
@@ -111,12 +111,6 @@ public class DijkstraStrategy extends Strategy {
     	
     	// get the current view from MyAIController
     	this.currentView = car.getView();
-    	
-        // use the buildRoute() function to get the route and graph
-        // use getNextMove() to return the next step   
-    }
-    
-    public void setDestination(HashMap<Coordinate, Integer> keyMap) {
     	this.keyMap = keyMap;
     	int keyToFind = car.getKey();
     	for (Coordinate keyLoc : keyMap.keySet()) {
@@ -124,8 +118,11 @@ public class DijkstraStrategy extends Strategy {
     			this.finalDestination = keyLoc;
     		}
     	}
+    	
+        // use the buildRoute() function to get the route and graph
+        // use getNextMove() to return the next step   
     }
-  
+    
     
     // this will build a graph using vertexes and nodes from scratch
     public void buildRoute() {
@@ -374,9 +371,8 @@ public class DijkstraStrategy extends Strategy {
 		return directionMoving;
 	}
 	
-	public boolean getNextMove(HashMap<Coordinate, MapTile> map, float delta) {
+	public HashMap<Coordinate, Integer> getNextMove(HashMap<Coordinate, MapTile> map, float delta) {
 		// going to assume that we know the coordinate we're getting to:
-		setDestination(WallFollowingStrategy.keyMap);
 		
 		// MoveDecision decisionMade = currentStrategy.getNextMove(this.map, getX(), getY(), isFollowingWall, previousState);
 		int decisionMade = findDirectionToMove(this.map, isFollowingWall);
@@ -433,7 +429,7 @@ public class DijkstraStrategy extends Strategy {
 				}
 				break;
 		}
-		return true;			
+		return keyMap;			
 	}
 	
 	/**
