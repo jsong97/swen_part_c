@@ -6,6 +6,7 @@ import controller.CarController;
 import tiles.MapTile;
 import utilities.Coordinate;
 import world.Car;
+import world.World;
 
 public class MyAIController extends CarController{
 
@@ -15,7 +16,7 @@ public class MyAIController extends CarController{
 	// we need to find the number of keys there are from the beginning
 	int numKeys;
 	
-	Strategy currentStrategy;
+	MovementStrategy currentStrategy;
 	// How many minimum units the wall is away from the player.
 	private int wallSensitivity = 2;
 
@@ -34,8 +35,9 @@ public class MyAIController extends CarController{
 	public MyAIController(Car car) {
 		super(car);
 		currentState = CAR_STATE.FINDING_KEYS;
-		Strategy keyFinding = WallFollowingStrategy.getInstance(car, wallSensitivity, EAST_THRESHOLD);
+		MovementStrategy keyFinding = WallFollowingStrategy.getInstance(car, wallSensitivity, EAST_THRESHOLD);
 		currentStrategy = keyFinding;	
+		this.map = World.getMap();
 		
 		// instantiate this at the beginning
 		this.numKeys = car.getKey();
@@ -44,29 +46,16 @@ public class MyAIController extends CarController{
 	@Override
 	public void update(float delta) {
 		if (currentState == CAR_STATE.FINDING_KEYS) {
-			this.keyMap = this.currentStrategy.getNextMove(this.map, delta);
+			this.keyMap = this.currentStrategy.makeNextMove(this.map, delta);
 			if ((keyMap != null) && (keyMap.size() == numKeys)){
-				System.out.println("SWAPPING TO DIJKSTRA");
 				currentState = CAR_STATE.RETRIEVING_KEYS;
 			}
-		} else {
+		} 
+		else if (currentState == CAR_STATE.RETRIEVING_KEYS) {
 			currentStrategy = DijkstraStrategy.getInstance(car, keyMap);
-			this.keyMap = this.currentStrategy.getNextMove(this.map, delta);
+			this.keyMap = this.currentStrategy.makeNextMove(this.map, delta);
 			
-		}
-//		else if (currentState == CAR_STATE.REVERSING) {
-//			boolean gucci = this.currentStrategy.getNextMove(this.map, delta);
-//			if (gucci) {
-//				currentState = CAR_STATE.FINDING_KEYS;
-//				currentStrategy = WallFollowingStrategy.getInstance(car, wallSensitivity, EAST_THRESHOLD);
-//			}
-//		} else if (currentState == CAR_STATE.DIJKSTRA) {
-//			// we still need to set the final destination
-//			currentStrategy = DijkstraStrategy.getInstance(car);
-//			
-//		}
-		
-				
+		}			
 	}
 	
 	

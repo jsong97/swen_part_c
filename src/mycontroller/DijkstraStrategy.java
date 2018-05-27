@@ -40,7 +40,7 @@ import java.util.List;
 // 4. calculate the route
 // 5. return the next step (just has to move to the next node)
 
-public class DijkstraStrategy extends Strategy {
+public class DijkstraStrategy extends MovementStrategy {
 	// this is the full map
 	private HashMap<Coordinate, MapTile> worldMap;
 	
@@ -63,7 +63,6 @@ public class DijkstraStrategy extends Strategy {
 	HashMap<Coordinate, MapTile> map;
 	HashMap<Coordinate, Boolean> visitedMap;
 	
-	Strategy currentStrategy;
 	// How many minimum units the wall is away from the player.
 	private int wallSensitivity = 2;
 	private boolean isFollowingWall = false; // This is initialized when the car sticks to a wall.
@@ -371,10 +370,9 @@ public class DijkstraStrategy extends Strategy {
 		return directionMoving;
 	}
 	
-	public HashMap<Coordinate, Integer> getNextMove(HashMap<Coordinate, MapTile> map, float delta) {
+	public HashMap<Coordinate, Integer> makeNextMove(HashMap<Coordinate, MapTile> map, float delta) {
 		// going to assume that we know the coordinate we're getting to:
 		
-		// MoveDecision decisionMade = currentStrategy.getNextMove(this.map, getX(), getY(), isFollowingWall, previousState);
 		int decisionMade = findDirectionToMove(this.map, isFollowingWall);
 		
 		

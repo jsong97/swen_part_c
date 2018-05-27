@@ -1,6 +1,8 @@
 package mycontroller;
 
 import java.util.HashMap;
+
+import tiles.HealthTrap;
 import tiles.LavaTrap;
 import tiles.MapTile;
 import utilities.Coordinate;
@@ -8,7 +10,7 @@ import world.Car;
 import world.World;
 import world.WorldSpatial;
 
-public class WallFollowingStrategy extends Strategy {
+public class WallFollowingStrategy extends MovementStrategy {
 	
 	private static WallFollowingStrategy instance = null;
 	
@@ -52,7 +54,7 @@ public class WallFollowingStrategy extends Strategy {
 	}
 	
 
-	public HashMap<Coordinate, Integer> getNextMove(HashMap<Coordinate, MapTile> map, float delta) {
+	public HashMap<Coordinate, Integer> makeNextMove(HashMap<Coordinate, MapTile> map, float delta) {
 		// Check if need to reverse
 		if (this.isReversing) {
 			reverse(delta);
@@ -74,16 +76,19 @@ public class WallFollowingStrategy extends Strategy {
 			}
 		}
 		
-		updateVisitedCoords();
+		Coordinate currentPosition = new Coordinate(Math.round(car.getX()), Math.round(car.getY()));
+		updateVisitedCoords(currentPosition);
+		
+		// Check if we're been on this tile more than 3 times, if so we're definitely in a cycle
+		if (visitedCoords.get(currentPosition) >= 3) {
+			//need to implement logic to take a different turn somewhere
+		}
 		
 		// Stand on health trap
-		Coordinate currentPosition = new Coordinate(Math.round(car.getX()), Math.round(car.getY()));
-//		if (map.containsKey(currentPosition) && map.get(currentPosition) instanceof HealthTrap && car.getHealth() < car.MAX_HEALTH) {
-//			car.brake();
-//		}
+		if (map.containsKey(currentPosition) && map.get(currentPosition) instanceof HealthTrap && car.getHealth() < car.MAX_HEALTH) {
+			car.brake();
+		}
 
-		
-		
 		
 		checkStateChange();
 //		detectBox(currentView, delta);
@@ -164,12 +169,11 @@ public class WallFollowingStrategy extends Strategy {
 				isTurningLeft = true;
 			}
 		}
-		
 		return keyMap;
+		
 	}
 	
-	public void updateVisitedCoords() {
-		Coordinate coord = new Coordinate(Math.round(car.getX()), Math.round(car.getY()));
+	public void updateVisitedCoords(Coordinate coord) {
 		if (visitedCoords.containsKey(coord)) {
 			int timesVisited = visitedCoords.get(coord);
 			visitedCoords.put(coord, timesVisited++);
@@ -221,7 +225,6 @@ public class WallFollowingStrategy extends Strategy {
 	}
 	
 	public void reverse(float delta) {
-		System.out.println("Trying to reverse");
 		this.reverseDelta += delta;
 		if (this.reverseDelta < 0.4) {
 			car.applyReverseAcceleration();
@@ -232,7 +235,6 @@ public class WallFollowingStrategy extends Strategy {
 		}
 		else {
 			this.reverseDelta = 0;
-			System.out.println("Done");
 			this.isReversing = false;
 		}
 	}
