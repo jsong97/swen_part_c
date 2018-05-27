@@ -1,10 +1,10 @@
 package mycontroller;
 
 import java.util.HashMap;
-
+import world.Car;
+import world.WorldSpatial;
 import tiles.MapTile;
 import utilities.Coordinate;
-import world.WorldSpatial.Direction;
 
 public class StrategyFactory {
 	private static StrategyFactory instance = null;
@@ -25,8 +25,10 @@ public class StrategyFactory {
 		return new WallFollowingStrategy();
 	}
 	
-	public DjikstraStrategy getDjikstraStrategy() {
-		return new DjikstraStrategy();
+	public DijkstraStrategy getDijkstraStrategy(Car car, Coordinate currentLoc,
+			HashMap<Coordinate,MapTile> currentView, Coordinate finalDestination,
+			WorldSpatial.Direction previousState) {
+		return new DijkstraStrategy(car, currentLoc, currentView, finalDestination, previousState);
 	}
 
 }
