@@ -90,14 +90,14 @@ public class DijkstraStrategy extends MovementStrategy {
 
     private static DijkstraStrategy instance = null;
     
-    public static DijkstraStrategy getInstance(Car car, HashMap<Coordinate, Integer> keyMap) {
+    public static DijkstraStrategy getInstance(Car car) {
 		if (instance == null) {
-			instance = new DijkstraStrategy(car, keyMap);
+			instance = new DijkstraStrategy(car);
 		}
 		return instance;
 	}
   
-    public DijkstraStrategy(Car car, HashMap<Coordinate, Integer> keyMap) {
+    public DijkstraStrategy(Car car) {
     	// get the overall map from the game
     	super(car);
     	this.worldMap = World.getMap();
@@ -110,6 +110,13 @@ public class DijkstraStrategy extends MovementStrategy {
     	
     	// get the current view from MyAIController
     	this.currentView = car.getView();
+    	
+    	
+        // use the buildRoute() function to get the route and graph
+        // use getNextMove() to return the next step   
+    }
+    
+    public void setKeyMap(HashMap<Coordinate, Integer> keyMap) {
     	this.keyMap = keyMap;
     	int keyToFind = car.getKey();
     	for (Coordinate keyLoc : keyMap.keySet()) {
@@ -117,9 +124,6 @@ public class DijkstraStrategy extends MovementStrategy {
     			this.finalDestination = keyLoc;
     		}
     	}
-    	
-        // use the buildRoute() function to get the route and graph
-        // use getNextMove() to return the next step   
     }
     
     
@@ -152,11 +156,39 @@ public class DijkstraStrategy extends MovementStrategy {
 	    // now we need to build all possible edges that we can...
 	    // also need a nested array...
 	    for (Vertex spot : nodes) {
-	    	int spot_x_loc = spot.getLocation().getX();
-	    	int spot_y_loc = spot.getLocation().getY();
+	    	
+	    	// need to find the X and Y for Coordinate class.
+	    	// we aren't given getX() or getY() methods, so need to do it using toString
+	    	String x_and_y = spot.getLocation().toString();
+	    	int string_split_count = 0;
+	    	int spot_x_loc = 0;
+	    	int spot_y_loc = 0;
+	    	
+	    	for (String s : x_and_y.split(",")) {
+	    		if(string_split_count == 0) {
+	    			spot_x_loc = Integer.parseInt(s);
+	    		} else {
+	    			spot_y_loc = Integer.parseInt(s);
+	    		}
+	    	    string_split_count ++;
+	    	}
+	    	
 	    	for (Vertex inner_spot : nodes) {
-	    		int inner_spot_x_loc = inner_spot.getLocation().getX();
-	    		int inner_spot_y_loc = inner_spot.getLocation().getY();
+	    		String inner_x_and_y = inner_spot.getLocation().toString();
+		    	int inner_string_split_count = 0;
+		    	int inner_spot_x_loc = 0;
+		    	int inner_spot_y_loc = 0;
+		    	
+		    	// need to reassign to work with the methods in Coordinate
+		    	for (String inner_s : inner_x_and_y.split(",")) {
+		    		if(inner_string_split_count == 0) {
+		    			inner_spot_x_loc = Integer.parseInt(inner_s);
+		    		} else {
+		    			inner_spot_y_loc = Integer.parseInt(inner_s);
+		    		}
+		    	    inner_string_split_count ++;
+		    	}
+		    	
 		    	if (spot_x_loc == inner_spot_x_loc) {
 		    		// 'inner spot' is either right below or right above 'spot'
 		    		if (spot_y_loc - inner_spot_y_loc == 1){
@@ -343,8 +375,20 @@ public class DijkstraStrategy extends MovementStrategy {
 		
 		// get the next stop on the path
 		Vertex nextVertex = path.get(1);
-		int xDirection = nextVertex.getLocation().getX() - currentLoc.getX();
-		int yDirection = nextVertex.getLocation().getY() - currentLoc.getY();
+		String x_and_y = nextVertex.getLocation().toString();
+    	int string_split_count = 0;
+    	int xDirection = 0;
+		int yDirection = 0;
+    	
+    	// need to reassign to work with the methods in Coordinate
+    	for (String s : x_and_y.split(",")) {
+    		if(string_split_count == 0) {
+    			xDirection = Integer.parseInt(s);
+    		} else {
+    			yDirection = Integer.parseInt(s);
+    		}
+    	    string_split_count ++;
+    	}
 		
 		int directionMoving;
 		
@@ -380,57 +424,55 @@ public class DijkstraStrategy extends MovementStrategy {
 		HashMap<Coordinate, MapTile> currentView = car.getView();
 		
 		// Stand on health trap
-		if (map.containsKey(currentLoc) && map.get(currentLoc) instanceof HealthTrap && car.getHealth() < car.MAX_HEALTH) {
-			car.brake();
+//		if (map.containsKey(currentLoc) && map.get(currentLoc) instanceof HealthTrap && car.getHealth() < car.MAX_HEALTH) {
+//			car.brake();
+//		}
+		// first, get the car up to speed
+		if(car.getSpeed() < CAR_SPEED){
+			car.applyForwardAcceleration();
 		}
-		else {
-			// first, get the car up to speed
-			if(car.getSpeed() < CAR_SPEED){
-				car.applyForwardAcceleration();
-			}
-			switch (decisionMade) {
-			
-				// need to turn north
-				case 1:
-					if(!car.getOrientation().equals(WorldSpatial.Direction.NORTH)){
-						lastTurnDirection = WorldSpatial.RelativeDirection.LEFT;
-						applyLeftTurn(car.getOrientation(),delta);
+		switch (decisionMade) {
+		
+			// need to turn north
+			case 1:
+				if(!car.getOrientation().equals(WorldSpatial.Direction.NORTH)){
+					lastTurnDirection = WorldSpatial.RelativeDirection.LEFT;
+					applyLeftTurn(car.getOrientation(),delta);
+				}
+				break;
+				
+			// need to turn east
+			case 2:
+				if(checkNorth(currentView)){
+					// Turn right until we go back to east!
+					if(!car.getOrientation().equals(WorldSpatial.Direction.EAST)){
+						lastTurnDirection = WorldSpatial.RelativeDirection.RIGHT;
+						applyRightTurn(car.getOrientation(),delta);
 					}
-					break;
-					
-				// need to turn east
-				case 2:
-					if(checkNorth(currentView)){
-						// Turn right until we go back to east!
-						if(!car.getOrientation().equals(WorldSpatial.Direction.EAST)){
-							lastTurnDirection = WorldSpatial.RelativeDirection.RIGHT;
-							applyRightTurn(car.getOrientation(),delta);
-						}
+				}
+				break;
+				
+			// need to turn south
+			case 3:
+				if(checkNorth(currentView)){
+					// Turn right until we go back to east!
+					if(!car.getOrientation().equals(WorldSpatial.Direction.SOUTH)){
+						lastTurnDirection = WorldSpatial.RelativeDirection.RIGHT;
+						applyRightTurn(car.getOrientation(),delta);
 					}
-					break;
-					
-				// need to turn south
-				case 3:
-					if(checkNorth(currentView)){
-						// Turn right until we go back to east!
-						if(!car.getOrientation().equals(WorldSpatial.Direction.SOUTH)){
-							lastTurnDirection = WorldSpatial.RelativeDirection.RIGHT;
-							applyRightTurn(car.getOrientation(),delta);
-						}
+				}
+				break;
+				
+			// need to turn west
+			case 4:
+				if(checkNorth(currentView)){
+					// Turn right until we go back to east!
+					if(!car.getOrientation().equals(WorldSpatial.Direction.WEST)){
+						lastTurnDirection = WorldSpatial.RelativeDirection.RIGHT;
+						applyRightTurn(car.getOrientation(),delta);
 					}
-					break;
-					
-				// need to turn west
-				case 4:
-					if(checkNorth(currentView)){
-						// Turn right until we go back to east!
-						if(!car.getOrientation().equals(WorldSpatial.Direction.WEST)){
-							lastTurnDirection = WorldSpatial.RelativeDirection.RIGHT;
-							applyRightTurn(car.getOrientation(),delta);
-						}
-					}
-					break;
-			}
+				}
+				break;
 		}
 		return keyMap;
 	}

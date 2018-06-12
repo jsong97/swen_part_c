@@ -37,7 +37,7 @@ public class WallFollowingStrategy extends MovementStrategy {
 	
 	private int EAST_THRESHOLD;
 	
-	// Dont enter lava below 30 health
+	// Don't enter lava below 30 health
 	private int LAVA_ENTRY_THRESHOLD = 30;
 	private int keysToFind;
 	private boolean isReversing = false;
@@ -85,9 +85,9 @@ public class WallFollowingStrategy extends MovementStrategy {
 		}
 		
 		// Stand on health trap
-		if (map.containsKey(currentPosition) && map.get(currentPosition) instanceof HealthTrap && car.getHealth() < car.MAX_HEALTH) {
-			car.brake();
-		}
+//		if (map.containsKey(currentPosition) && map.get(currentPosition) instanceof HealthTrap && car.getHealth() < car.MAX_HEALTH) {
+//			car.brake();
+//		}
 
 		
 		checkStateChange();

@@ -17,6 +17,7 @@ public class MyAIController extends CarController{
 	int numKeys;
 	
 	MovementStrategy currentStrategy;
+	DijkstraStrategy dijkstraStrategy;
 	// How many minimum units the wall is away from the player.
 	private int wallSensitivity = 2;
 
@@ -36,7 +37,8 @@ public class MyAIController extends CarController{
 		super(car);
 		currentState = CAR_STATE.FINDING_KEYS;
 		MovementStrategy keyFinding = WallFollowingStrategy.getInstance(car, wallSensitivity, EAST_THRESHOLD);
-		currentStrategy = keyFinding;	
+		currentStrategy = keyFinding;
+		dijkstraStrategy = DijkstraStrategy.getInstance(car);
 		this.map = World.getMap();
 		
 		// instantiate this at the beginning
@@ -52,7 +54,8 @@ public class MyAIController extends CarController{
 			}
 		} 
 		else if (currentState == CAR_STATE.RETRIEVING_KEYS) {
-			currentStrategy = DijkstraStrategy.getInstance(car, keyMap);
+			dijkstraStrategy.setKeyMap(keyMap);
+			currentStrategy = dijkstraStrategy;
 			this.keyMap = this.currentStrategy.makeNextMove(this.map, delta);		
 		}			
 	}
