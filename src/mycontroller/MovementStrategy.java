@@ -15,4 +15,7 @@ public abstract class MovementStrategy {
 
 	abstract HashMap<Coordinate, Integer> makeNextMove(HashMap<Coordinate, MapTile> map, float delta);
 	
+	public void setKeyMap(HashMap<Coordinate, Integer> keyMap) {
+		
+	}
 }

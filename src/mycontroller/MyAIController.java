@@ -17,7 +17,7 @@ public class MyAIController extends CarController{
 	int numKeys;
 	
 	MovementStrategy currentStrategy;
-	DijkstraStrategy dijkstraStrategy;
+	MovementStrategy dijkstraStrategy;
 	// How many minimum units the wall is away from the player.
 	private int wallSensitivity = 2;
 
